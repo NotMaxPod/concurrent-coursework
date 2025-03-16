@@ -11,8 +11,15 @@ def handleRequest(client_socket):
         if not data:
             break
         message = data.decode('utf-8')
+        username, message = message.split('usersplit')
         current_time = datetime.datetime.now()
-        print(f"{current_time}: {message}")
+        hour = current_time.hour
+        if hour < 10:
+            hour = '0' + str(hour)
+        minute = current_time.minute
+        if minute < 10:
+            minute = '0' + str(minute)
+        print(f"{username} {current_time.year}/{current_time.month}/{current_time.day} {hour}:{minute}: {message}")
         response = "Server received your message: " + message
         client_socket.sendall(response.encode('utf-8'))
     client_socket.close()
@@ -20,7 +27,7 @@ def handleRequest(client_socket):
 def main():
     server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     host = '127.0.0.1'
-    port = 12344
+    port = 12345
     server_socket.bind((host, port))
     server_socket.listen(5)
     print(f"Server listening on {host}:{port}")
