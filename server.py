@@ -2,6 +2,7 @@
 # This structure was closely followed and will be modified to fit the coursework
 import socket 
 import threading
+import datetime
  
 # Handle the request sent to by the client to the server
 def handleRequest(client_socket):
@@ -10,7 +11,8 @@ def handleRequest(client_socket):
         if not data:
             break
         message = data.decode('utf-8')
-        print(f"Received message: {message}")
+        current_time = datetime.datetime.now()
+        print(f"{current_time}: {message}")
         response = "Server received your message: " + message
         client_socket.sendall(response.encode('utf-8'))
     client_socket.close()
