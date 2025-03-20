@@ -3,6 +3,8 @@
 import socket 
 import threading
 import datetime
+
+lim = threading.Semaphore(3)
  
 # Handle the request sent to by the client to the server
 def handleRequest(client_socket):
@@ -12,6 +14,8 @@ def handleRequest(client_socket):
             break
         message = data.decode('utf-8')
         username, message = message.split('usersplit')
+        if message == "/terminate":
+            break
         current_time = datetime.datetime.now()
         hour = current_time.hour
         if hour < 10:
@@ -22,6 +26,7 @@ def handleRequest(client_socket):
         print(f"{username} {current_time.year}/{current_time.month}/{current_time.day} {hour}:{minute}: {message}")
         response = "Server received your message: " + message
         client_socket.sendall(response.encode('utf-8'))
+    lim.release()
     client_socket.close()
 
 def main():
@@ -36,6 +41,7 @@ def main():
         client_socket, client_address = server_socket.accept()
         print(f"Accepted connection from {client_address}")
         client_handler = threading.Thread(target=handleRequest, args=(client_socket,))
+        lim.acquire()
         client_handler.start()
 
 if __name__ == "__main__":
