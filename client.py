@@ -23,13 +23,13 @@ class Client():
             if message == "/exit":
                 client_socket.close()
                 server.sem_counter-=1
+                #server.lim.release()
                 break
             data = client_socket.recv(1024)
             response = data.decode('utf-8')
-            if response == "Muted.":
+            if response == "Muted." or response == "Empty":
                 continue
-            print(response)
-            print(f"Server response: {response}")
+            print(f"Sent to server: {response}")
 
     def registerUser(self, username,password):
         conn = sqlite3.connect('users.db')
