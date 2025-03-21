@@ -7,7 +7,7 @@ import datetime
 import time
 from cryptography.fernet import Fernet
 
-lim = threading.Semaphore(3)
+#lim = threading.Semaphore(3)
 sem_counter = 0
 que = {}
 connected = {}
@@ -29,19 +29,26 @@ class Server():
                 break
             message = data.decode('utf-8')
             username, message = message.split('usersplit')
-            
-            if client_address not in que.keys() and sem_counter > 2:
-                que[client_address] = time.time()
-                continue
+            response = "Empty"
 
-            # Check if client is in queue
-            elif client_address in que.keys() and sem_counter<3:
-                del que[client_address]
-                sem_counter+=1
+            if (len(connected) < 3) and (client_socket not in connected.values()):
                 connected[client_address] = client_socket
-            elif client_address not in que.keys() and (client_address not in connected.keys()):
-                    connected[client_address] = client_socket
-                    sem_counter+=1
+                sem_counter+=1
+                print("Added to connected")
+            
+            elif len(connected) > 2:
+                if (client_socket not in que.keys()) and (client_socket not in connected.values()):
+                    que[client_socket] = time.time()
+                    print("Added to que.")
+                elif client_socket in que.keys():
+                    waitingTime = time.time() - que[client_socket]
+                    response = f"Waiting in queue for {waitingTime} seconds."
+            
+            elif len(connected) < 3 and client_socket in que.keys():
+                del que[client_socket]
+                connected[client_address] = client_socket
+                response = message
+                print("removed from que")
             
             # Client is not in queue, process message
             if message == "/exit":
@@ -53,12 +60,9 @@ class Server():
                     self.mute = False
                 else:
                     self.mute = True
-            elif client_address in que.keys() and sem_counter > 2:
-                # Send waiting time to client as response
-                waiting_time = time.time() - que[client_address]
-                response = f"Waiting in queue for {waiting_time} seconds."
-                client_socket.sendall(response.encode('utf-8'))
-            else:
+            elif self.mute:
+                response = "Muted."
+            elif client_socket in connected.values():
                 self.encryptToDb(username, message)
                 current_time = datetime.datetime.now()
                 hour = current_time.hour
@@ -68,18 +72,12 @@ class Server():
                 if minute < 10:
                     minute = '0' + str(minute)
                 print(f"{username} {current_time.year}/{current_time.month}/{current_time.day} {hour}:{minute}: {message}")
-                print(que)
-                #print(connected)
+                response = message
 
             # Send response back to client only if not muted
-            if self.mute == False:
-                response = f"{username} {current_time.year}/{current_time.month}/{current_time.day} {hour}:{minute}: {message}"
-            else:
-                response = "Muted."
+
             client_socket.sendall(response.encode('utf-8'))
 
-
-        sem_counter -= 1
         client_socket.close()
 
     def encryptToDb(self, username, message):
@@ -115,7 +113,6 @@ def main():
         
         client_socket, client_address = server_socket.accept()
         print(que)
-        print(lim)
                 
         print(f"Accepted connection from {client_address}")
         client_handler = threading.Thread(target=theServer.handleRequest, args=(client_socket,client_address,))
