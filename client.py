@@ -22,8 +22,7 @@ class Client():
             client_socket.sendall(newmessage.encode('utf-8'))
             if message == "/exit":
                 client_socket.close()
-                server.sem_counter-=1
-                #server.lim.release()
+                #del server.connected[client_socket]
                 break
             data = client_socket.recv(1024)
             response = data.decode('utf-8')

@@ -7,8 +7,6 @@ import datetime
 import time
 from cryptography.fernet import Fernet
 
-#lim = threading.Semaphore(3)
-sem_counter = 0
 que = {}
 connected = {}
 
@@ -20,10 +18,9 @@ class Server():
 
     # Handle the request sent to by the client to the server
     def handleRequest(self, client_socket, client_address):
-        global sem_counter
 
         while True:
-
+            #print(connected)
             data = client_socket.recv(1024)
             if not data:
                 break
@@ -31,29 +28,12 @@ class Server():
             username, message = message.split('usersplit')
             response = "Empty"
 
-            if (len(connected) < 3) and (client_socket not in connected.values()):
-                connected[client_address] = client_socket
-                sem_counter+=1
-                print("Added to connected")
-            
-            elif len(connected) > 2:
-                if (client_socket not in que.keys()) and (client_socket not in connected.values()):
-                    que[client_socket] = time.time()
-                    print("Added to que.")
-                elif client_socket in que.keys():
-                    waitingTime = time.time() - que[client_socket]
-                    response = f"Waiting in queue for {waitingTime} seconds."
-            
-            elif len(connected) < 3 and client_socket in que.keys():
-                del que[client_socket]
-                connected[client_address] = client_socket
-                response = message
-                print("removed from que")
+            response = self.manageUsers(client_socket, username, message)
             
             # Client is not in queue, process message
             if message == "/exit":
                 # Remove client from connected clients
-                del connected[client_address]
+                del connected[client_socket]
                 break
             elif message == "/mute":
                 if self.mute:
@@ -62,7 +42,7 @@ class Server():
                     self.mute = True
             elif self.mute:
                 response = "Muted."
-            elif client_socket in connected.values():
+            elif client_socket in connected.keys():
                 self.encryptToDb(username, message)
                 current_time = datetime.datetime.now()
                 hour = current_time.hour
@@ -80,6 +60,29 @@ class Server():
 
         client_socket.close()
 
+    def manageUsers(self, client_socket, username, message):
+        if (len(connected) < 3) and (client_socket not in connected.keys()):
+                connected[client_socket] = username
+                #print("Added to connected")
+            
+        elif len(connected) > 2:
+            if (client_socket not in que.keys()) and (client_socket not in connected.keys()):
+                que[client_socket] = time.time()
+                response = "The server is current at maximum capcity, you have been added to the que."
+                #print("Added to que.")
+
+            elif client_socket in que.keys():
+                waitingTime = time.time() - que[client_socket]
+                response = f"Waiting in queue for {waitingTime} seconds."
+                #print("in que")
+            
+        elif len(connected) < 3 and client_socket in que.keys():
+                del que[client_socket]
+                connected[client_socket] = username
+                response = message
+                #print("removed from que")
+
+        return response
     def encryptToDb(self, username, message):
 
         fer = Fernet(self.key)
@@ -112,7 +115,7 @@ def main():
     while True:
         
         client_socket, client_address = server_socket.accept()
-        print(que)
+        #print(que)
                 
         print(f"Accepted connection from {client_address}")
         client_handler = threading.Thread(target=theServer.handleRequest, args=(client_socket,client_address,))
