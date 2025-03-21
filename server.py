@@ -7,7 +7,7 @@ import datetime
 import time
 from cryptography.fernet import Fernet
 
-#lim = threading.Semaphore(3)
+lim = threading.Semaphore(3)
 sem_counter = 0
 que = {}
 connected = {}
@@ -23,8 +23,6 @@ class Server():
         global sem_counter
 
         while True:
-            if client_address not in que.keys() and sem_counter > 2:
-                que[client_address] = time.time()
 
             data = client_socket.recv(1024)
             if not data:
@@ -32,16 +30,14 @@ class Server():
             message = data.decode('utf-8')
             username, message = message.split('usersplit')
             
-            # Check if client is in queue
-            if client_address in que.keys() and sem_counter > 2:
-                # Send waiting time to client as response
-                waiting_time = time.time() - que[client_address]
-                response = f"Waiting in queue for {waiting_time} seconds."
-                client_socket.sendall(response.encode('utf-8'))
-                # Continue to next iteration, blocking message from being sent to server
+            if client_address not in que.keys() and sem_counter > 2:
+                que[client_address] = time.time()
                 continue
+
+            # Check if client is in queue
             elif client_address in que.keys() and sem_counter<3:
                 del que[client_address]
+                sem_counter+=1
                 connected[client_address] = client_socket
             elif client_address not in que.keys() and (client_address not in connected.keys()):
                     connected[client_address] = client_socket
@@ -57,6 +53,11 @@ class Server():
                     self.mute = False
                 else:
                     self.mute = True
+            elif client_address in que.keys() and sem_counter > 2:
+                # Send waiting time to client as response
+                waiting_time = time.time() - que[client_address]
+                response = f"Waiting in queue for {waiting_time} seconds."
+                client_socket.sendall(response.encode('utf-8'))
             else:
                 self.encryptToDb(username, message)
                 current_time = datetime.datetime.now()
@@ -114,6 +115,7 @@ def main():
         
         client_socket, client_address = server_socket.accept()
         print(que)
+        print(lim)
                 
         print(f"Accepted connection from {client_address}")
         client_handler = threading.Thread(target=theServer.handleRequest, args=(client_socket,client_address,))
