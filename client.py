@@ -5,24 +5,30 @@ import threading
 import socket 
 import bcrypt
 import tkinter as tk
+import server
+import time
 
 class Client():
  
     def sendRequest(self, username):
+            
         client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         host = '127.0.0.1'
         port = 12345
         client_socket.connect((host, port))
-
         while True:
             message = input("Enter your message: ")
             newmessage = username + "usersplit" + message
             client_socket.sendall(newmessage.encode('utf-8'))
             if message == "/exit":
                 client_socket.close()
+                server.sem_counter-=1
                 break
             data = client_socket.recv(1024)
             response = data.decode('utf-8')
+            if response == "Muted.":
+                continue
+            print(response)
             print(f"Server response: {response}")
 
     def registerUser(self, username,password):
@@ -79,4 +85,6 @@ if __name__ == "__main__":
 
             if new_client.loginUser(username, password):
                 break
+
     new_client.sendRequest(username)
+
