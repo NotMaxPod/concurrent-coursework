@@ -23,6 +23,9 @@ class Server():
         global sem_counter
 
         while True:
+            if client_address not in que.keys() and sem_counter > 2:
+                que[client_address] = time.time()
+
             data = client_socket.recv(1024)
             if not data:
                 break
@@ -46,6 +49,8 @@ class Server():
             
             # Client is not in queue, process message
             if message == "/exit":
+                # Remove client from connected clients
+                del connected[client_address]
                 break
             elif message == "/mute":
                 if self.mute:
@@ -62,6 +67,8 @@ class Server():
                 if minute < 10:
                     minute = '0' + str(minute)
                 print(f"{username} {current_time.year}/{current_time.month}/{current_time.day} {hour}:{minute}: {message}")
+                print(que)
+                #print(connected)
 
             # Send response back to client only if not muted
             if self.mute == False:
@@ -106,8 +113,6 @@ def main():
     while True:
         
         client_socket, client_address = server_socket.accept()
-        if client_address not in que.keys() and sem_counter > 2:
-                que[client_address] = time.time()
         print(que)
                 
         print(f"Accepted connection from {client_address}")
