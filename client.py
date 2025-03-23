@@ -4,6 +4,7 @@ import sqlite3
 import socket 
 import bcrypt
 from tkinter import*
+from threading import *
 import tkinter as tk
 import time
 
@@ -12,14 +13,16 @@ class Client():
     def __init__(self):
         self.username = ""
         self.password = ""
- 
+    
+    
+    
     def sendRequest(self, username):
             
         client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         host = '127.0.0.1'
         port = 12345
         client_socket.connect((host, port))
-
+        
         messageWindow = tk.Tk()
         messageWindow.title("Message Interface of " + username)
 
@@ -29,6 +32,7 @@ class Client():
         responseField = tk.Text(messageWindow, height=10, width=40)
         responseField.pack(pady=10)
         responseField.config(state="disabled")
+
         
         
         def sendMessage():
@@ -36,7 +40,6 @@ class Client():
             newmessage = username + "usersplit" + message
             client_socket.sendall(newmessage.encode('utf-8'))
             messageEntry.delete("1.0", "end")
-            receiveMessage()
 
         def receiveMessage():
             data = client_socket.recv(1024)
@@ -44,6 +47,14 @@ class Client():
             responseField.config(state="normal")
             responseField.insert("end", response + "\n")
             responseField.config(state="disabled")
+
+        def refresh():
+            while True:
+                receiveMessage()
+                time.sleep(1)
+
+        updater = Thread(target=refresh)
+        updater.start()
         
         sendButton = tk.Button(messageWindow, text="Send", command=sendMessage)
         sendButton.pack(pady=10)
@@ -52,8 +63,8 @@ class Client():
         def sendFile():
             fileName = fileEntry.get()
             check = fileName.split(".")
+            serverMessage = username + "usersplit" + "/send"
             if check[1] == "docx" or check[1] == "pdf" or check[1] == "jpeg":
-                serverMessage = username + "usersplit" + "/send"
                 client_socket.send(serverMessage.encode('utf-8'))
                 client_socket.send(fileName.encode())
                 with open(fileName, "rb") as file:
@@ -61,10 +72,13 @@ class Client():
                     client_socket.send(fileData)
                     time.sleep(1)
                     client_socket.sendall(b"Finished transfering.")
-                receiveMessage()
+            
 
             else:
-                print("File type not supported.")
+                client_socket.send(serverMessage.encode('utf-8'))
+                fileName = "File type not supported."
+                client_socket.send(fileName.encode('utf-8'))
+                #print("File type not supported.")
 
         fileLabel = tk.Label(messageWindow, text="File Name:")
         fileLabel.pack()

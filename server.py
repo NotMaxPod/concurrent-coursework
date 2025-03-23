@@ -6,6 +6,8 @@ import threading
 import datetime
 import time
 import tkinter as tk
+from tkinter import scrolledtext
+from tkinter import *
 from cryptography.fernet import Fernet
 import sys
 
@@ -32,6 +34,9 @@ class Server():
             if message == "/send":
                 doneSending = False
                 fileName = client_socket.recv(1024)
+                if fileName.decode('utf-8') == "File type not supported.":
+                    client_socket.sendall(fileName)
+                    continue
                 fileName = username.encode('utf-8') + fileName
                 file = open(fileName, "wb")
                 newFileBytes = b""
@@ -74,8 +79,19 @@ class Server():
                 minute = current_time.minute
                 if minute < 10:
                     minute = '0' + str(minute)
-                print(f"{username} {current_time.year}/{current_time.month}/{current_time.day} {hour}:{minute}: {message}")
-                response = message
+                message = f"{username} {current_time.year}/{current_time.month}/{current_time.day} {hour}:{minute}: {message}"
+                print(message)
+                response = "Message sent to server."
+
+                for x in connected.keys():
+                    #print(client_socket)
+                    if x != client_socket:
+                        #print(x)
+                        clients = f"{username} sent a message!"
+                        x.send(clients.encode())
+
+                self.chatText.insert(tk.END, message + "\n")
+                self.chatText.see(tk.END)
 
     
 
@@ -124,24 +140,47 @@ class Server():
         conn.commit()
         conn.close()
 
+    def serverDisplay(self):
+        self.chatWindow = tk.Tk()
+        self.chatWindow.title("Server Chat")
+        self.chatText = scrolledtext.ScrolledText(self.chatWindow, width=100, height=50)
+        self.chatText.pack(padx=10, pady=10)
+
+        self.chatText.mainloop()
+
+
+    def boot(self, server_socket):
+        while True:
+            client_socket, client_address = server_socket.accept()
+            print(f"Accepted connection from {client_address}")
+            client_handler = threading.Thread(target=self.handleRequest, args=(client_socket,client_address,))
+            client_handler.start()
+
 
 def main():
-    global sem_counter
 
     theServer = Server()
     server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     host = '127.0.0.1'
     port = 12345
+
     server_socket.bind((host, port))
     server_socket.listen(5)
     print(f"Server listening on {host}:{port}")
+
+    serverThread = threading.Thread(target=theServer.boot, args=(server_socket,))
+    serverThread.start()
+
+    theServer.serverDisplay()
 
     while True:
         
         client_socket, client_address = server_socket.accept() 
         print(f"Accepted connection from {client_address}")
-        client_handler = threading.Thread(target=theServer.handleRequest, args=(client_socket,client_address,))
-        client_handler.start()
+        clientThread = threading.Thread(target=theServer.handleRequest, args=(client_socket,client_address,))
+        clientThread.start()
+
 
 if __name__ == "__main__":
     main()
+
