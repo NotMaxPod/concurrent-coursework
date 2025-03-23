@@ -1,11 +1,9 @@
 # Python program to implement client side of chat room. 
 
 import sqlite3
-import threading
 import socket 
 import bcrypt
 import tkinter as tk
-import server
 import time
 
 class Client():
@@ -24,7 +22,6 @@ class Client():
                 fileName = input("Please enter the file name: ")
                 check = fileName.split(".")
                 if check[1] == "docx" or check[1] == "pdf" or check[1] == "jpeg":
-                    print("Legal file")
                     client_socket.send(fileName.encode())
                     with open(fileName, "rb") as file:
                         fileData = file.read()
@@ -43,7 +40,6 @@ class Client():
             # Client termination if termibation command entered
             if message == "/exit":
                 client_socket.close()
-                #del server.connected[client_socket]
                 break
             data = client_socket.recv(1024)
             response = data.decode('utf-8')
@@ -58,12 +54,15 @@ class Client():
         c.execute('''CREATE TABLE IF NOT EXISTS users
                     (username text, password text)''')
         
-        hashed_password = hashPass(password)
+        c.execute("SELECT * FROM users WHERE username = ?", (username,))
+        if c.fetchone() is not None:
+            print("Username already taken. Data not saved to database.")
+        else:
+            hashed_password = hashPass(password)
+            c.execute("INSERT INTO users VALUES (?, ?)", (username, hashed_password))
 
-        c.execute("INSERT INTO users VALUES (?, ?)", (username, hashed_password))
-
-        conn.commit()
-        conn.close()
+            conn.commit()
+            conn.close()
 
     def loginUser(self, username, password):
         conn = sqlite3.connect('users.db')
@@ -91,6 +90,7 @@ def verifyPass(password, hashed_password):
 
 if __name__ == "__main__":
     new_client = Client()
+
 
     while True:
         userinput = input("Would you like to register (r) or login (l): ")
