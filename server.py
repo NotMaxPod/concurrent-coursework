@@ -136,9 +136,7 @@ def main():
 
     while True:
         
-        client_socket, client_address = server_socket.accept()
-        #print(que)
-                
+        client_socket, client_address = server_socket.accept() 
         print(f"Accepted connection from {client_address}")
         client_handler = threading.Thread(target=theServer.handleRequest, args=(client_socket,client_address,))
         client_handler.start()

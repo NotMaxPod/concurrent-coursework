@@ -3,10 +3,15 @@
 import sqlite3
 import socket 
 import bcrypt
+from tkinter import*
 import tkinter as tk
 import time
 
 class Client():
+
+    def __init__(self):
+        self.username = ""
+        self.password = ""
  
     def sendRequest(self, username):
             
@@ -88,11 +93,75 @@ def hashPass(password):
 def verifyPass(password, hashed_password):
     return bcrypt.checkpw(password.encode(), hashed_password)
 
+def loginDisplay():
+    global new_client
+    clientDisplay = tk.Tk()
+    clientDisplay.title("Client Interface")
+    
+    greetingLable = Label(clientDisplay, text="Welcome to your chatting application!", fg="black")
+    greetingLable.pack(pady=20)
+
+    buttonFrame = Frame(clientDisplay)
+    buttonFrame.pack(pady=20)
+
+    def userDataPrompt():
+        userData = tk.Toplevel(clientDisplay)
+        userData.title("Your login credentials")
+
+        usernameLabel = Label(userData, text="Username:")
+        usernameLabel.pack()
+        usernameEntry = Entry(userData)
+        usernameEntry.pack()
+
+        passwordLabel = Label(userData, text="Password:")
+        passwordLabel.pack()
+        passwordEntry = Entry(userData, show="*")
+        passwordEntry.pack()
+
+        def buttonPress():
+            new_client.username = usernameEntry.get()
+            new_client.password = passwordEntry.get()
+            userData.quit()
+            userData.destroy()
+            
+
+        
+        enterButton = Button(userData, text="Enter Data", command=buttonPress)
+        enterButton.pack()
+        userData.mainloop()
+
+
+    def registerButton():
+        userDataPrompt()
+        new_client.registerUser(new_client.username, new_client.password)
+
+    def loginButton():
+        print("Login Button")
+        userDataPrompt()
+        print("Logging in.")
+        if new_client.loginUser(new_client.username, new_client.password):
+            print("Verified")
+            clientDisplay.destroy()
+            new_client.sendRequest(new_client.username)
+    
+    # Create the login button
+    login_button = Button(buttonFrame, text="Login", command=loginButton)
+    login_button.pack(side=LEFT, padx=10)
+
+    # Create the register button
+    register_button = Button(buttonFrame, text="Register", command=registerButton)
+    register_button.pack(side=LEFT, padx=10)
+
+    clientDisplay.mainloop()
+
+
 if __name__ == "__main__":
     new_client = Client()
 
 
     while True:
+        loginDisplay()
+        print(new_client.password, new_client.username)
         userinput = input("Would you like to register (r) or login (l): ")
         if userinput == "r":
             username = input("Enter your username: ")
