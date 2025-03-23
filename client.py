@@ -19,7 +19,28 @@ class Client():
         while True:
             message = input("Enter your message: ")
             newmessage = username + "usersplit" + message
+            if message == "/send":
+                client_socket.send(newmessage.encode('utf-8'))
+                fileName = input("Please enter the file name: ")
+                check = fileName.split(".")
+                if check[1] == "docx" or check[1] == "pdf" or check[1] == "jpeg":
+                    print("Legal file")
+                    client_socket.send(fileName.encode())
+                    with open(fileName, "rb") as file:
+                        fileData = file.read()
+                        #print(fileData)
+                        client_socket.send(fileData)
+                        time.sleep(1)
+                        client_socket.sendall(b"Finished transfering.")
+                        continue
+                else:
+                    print("File type not supported.")
+                    continue
+                print("File sent")
+                continue
             client_socket.sendall(newmessage.encode('utf-8'))
+
+            # Client termination if termibation command entered
             if message == "/exit":
                 client_socket.close()
                 #del server.connected[client_socket]

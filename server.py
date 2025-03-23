@@ -6,6 +6,7 @@ import threading
 import datetime
 import time
 from cryptography.fernet import Fernet
+import sys
 
 que = {}
 connected = {}
@@ -26,7 +27,25 @@ class Server():
                 break
             message = data.decode('utf-8')
             username, message = message.split('usersplit')
-            response = "Empty"
+
+            if message == "/send":
+                doneSending = False
+                fileName = client_socket.recv(1024)
+                fileName = username.encode('utf-8') + fileName
+                file = open(fileName, "wb")
+                newFileBytes = b""
+                while not doneSending:
+                    fileData = client_socket.recv(1024)
+                    if fileData == b"Finished transfering." or fileData == b'':
+                        doneSending = True
+                        break
+                    else:
+                        newFileBytes += fileData
+                self.encryptToDb(username, fileData.decode(), "File.")
+                file.write(newFileBytes)
+                file.close()
+                print(username, "has sent a file to the server.")
+                continue
 
             response = self.manageUsers(client_socket, username, message)
             
@@ -35,15 +54,17 @@ class Server():
                 # Remove client from connected clients
                 del connected[client_socket]
                 break
+
+            #Update current status of mute flag
             elif message == "/mute":
                 if self.mute:
                     self.mute = False
                 else:
                     self.mute = True
-            elif self.mute:
+            if self.mute:
                 response = "Muted."
             elif client_socket in connected.keys():
-                self.encryptToDb(username, message)
+                self.encryptToDb(username, message, "Chat Message.")
                 current_time = datetime.datetime.now()
                 hour = current_time.hour
                 if hour < 10:
@@ -54,13 +75,14 @@ class Server():
                 print(f"{username} {current_time.year}/{current_time.month}/{current_time.day} {hour}:{minute}: {message}")
                 response = message
 
-            # Send response back to client only if not muted
+    
 
             client_socket.sendall(response.encode('utf-8'))
 
         client_socket.close()
 
     def manageUsers(self, client_socket, username, message):
+        response = "Empty"
         if (len(connected) < 3) and (client_socket not in connected.keys()):
                 connected[client_socket] = username
                 #print("Added to connected")
@@ -83,7 +105,7 @@ class Server():
                 #print("removed from que")
 
         return response
-    def encryptToDb(self, username, message):
+    def encryptToDb(self, username, message, message_type):
 
         fer = Fernet(self.key)
 
@@ -93,9 +115,9 @@ class Server():
         c = conn.cursor()
 
         c.execute('''CREATE TABLE IF NOT EXISTS messages
-                 (username text, message text)''')
+                 (username text, message text, message_type)''')
         
-        c.execute("INSERT INTO messages VALUES (?, ?)", (username, encrypted))
+        c.execute("INSERT INTO messages VALUES (?, ?, ?)", (username, encrypted, message_type,))
 
         conn.commit()
         conn.close()
@@ -119,7 +141,6 @@ def main():
                 
         print(f"Accepted connection from {client_address}")
         client_handler = threading.Thread(target=theServer.handleRequest, args=(client_socket,client_address,))
-        #lim.acquire()
         client_handler.start()
 
 if __name__ == "__main__":
