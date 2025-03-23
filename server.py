@@ -5,6 +5,7 @@ import sqlite3
 import threading
 import datetime
 import time
+import tkinter as tk
 from cryptography.fernet import Fernet
 import sys
 
@@ -45,6 +46,7 @@ class Server():
                 file.write(newFileBytes)
                 file.close()
                 print(username, "has sent a file to the server.")
+                client_socket.send("File sent to server.".encode('utf-8'))
                 continue
 
             response = self.manageUsers(client_socket, username, message)

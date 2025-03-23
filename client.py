@@ -19,7 +19,73 @@ class Client():
         host = '127.0.0.1'
         port = 12345
         client_socket.connect((host, port))
-        while True:
+
+        messageWindow = tk.Tk()
+        messageWindow.title("Message Interface of " + username)
+
+        messageEntry = tk.Text(messageWindow, height=10, width=40)
+        messageEntry.pack(pady=10)
+
+        responseField = tk.Text(messageWindow, height=10, width=40)
+        responseField.pack(pady=10)
+        responseField.config(state="disabled")
+        
+        
+        def sendMessage():
+            message = messageEntry.get("1.0", "end-1c")
+            newmessage = username + "usersplit" + message
+            client_socket.sendall(newmessage.encode('utf-8'))
+            messageEntry.delete("1.0", "end")
+            receiveMessage()
+
+        def receiveMessage():
+            data = client_socket.recv(1024)
+            response = data.decode('utf-8')
+            responseField.config(state="normal")
+            responseField.insert("end", response + "\n")
+            responseField.config(state="disabled")
+        
+        sendButton = tk.Button(messageWindow, text="Send", command=sendMessage)
+        sendButton.pack(pady=10)
+
+        # Create a file send button
+        def sendFile():
+            fileName = fileEntry.get()
+            check = fileName.split(".")
+            if check[1] == "docx" or check[1] == "pdf" or check[1] == "jpeg":
+                serverMessage = username + "usersplit" + "/send"
+                client_socket.send(serverMessage.encode('utf-8'))
+                client_socket.send(fileName.encode())
+                with open(fileName, "rb") as file:
+                    fileData = file.read()
+                    client_socket.send(fileData)
+                    time.sleep(1)
+                    client_socket.sendall(b"Finished transfering.")
+                receiveMessage()
+
+            else:
+                print("File type not supported.")
+
+        fileLabel = tk.Label(messageWindow, text="File Name:")
+        fileLabel.pack()
+        fileEntry = tk.Entry(messageWindow)
+        fileEntry.pack()
+        fileButton = tk.Button(messageWindow, text="Send File", command=sendFile)
+        fileButton.pack(pady=10)
+
+        # Create an exit button
+        def exitClient():
+            client_socket.sendall((username + "usersplit" + "/exit").encode('utf-8'))
+            client_socket.close()
+            messageWindow.destroy()
+
+        exitButton = tk.Button(messageWindow, text="Exit", command=exitClient)
+        exitButton.pack(pady=10)
+
+        
+
+        messageWindow.mainloop()
+        '''while True:
             message = input("Enter your message: ")
             newmessage = username + "usersplit" + message
             if message == "/send":
@@ -50,7 +116,7 @@ class Client():
             response = data.decode('utf-8')
             if response == "Muted." or response == "Empty":
                 continue
-            print(f"Sent to server: {response}")
+            print(f"Sent to server: {response}")'''
 
     def registerUser(self, username,password):
         conn = sqlite3.connect('users.db')
@@ -136,11 +202,8 @@ def loginDisplay():
         new_client.registerUser(new_client.username, new_client.password)
 
     def loginButton():
-        print("Login Button")
         userDataPrompt()
-        print("Logging in.")
         if new_client.loginUser(new_client.username, new_client.password):
-            print("Verified")
             clientDisplay.destroy()
             new_client.sendRequest(new_client.username)
     
@@ -158,22 +221,6 @@ def loginDisplay():
 if __name__ == "__main__":
     new_client = Client()
 
+    loginDisplay()
 
-    while True:
-        loginDisplay()
-        print(new_client.password, new_client.username)
-        userinput = input("Would you like to register (r) or login (l): ")
-        if userinput == "r":
-            username = input("Enter your username: ")
-            password = input("Enter your password: ")
-            new_client.registerUser(username, password)
-
-        elif userinput == "l":
-            username = input("Enter your username: ")
-            password = input("Enter your password: ")
-
-            if new_client.loginUser(username, password):
-                break
-
-    new_client.sendRequest(username)
 
