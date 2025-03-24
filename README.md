@@ -1,3 +1,5 @@
+Student ID: 39228754
+
 This is a basic server and client representation designed for the coursework in the module LZSCC.232.
 The server is capable of concurently sending messages across users as well transfering files to the server.
 
