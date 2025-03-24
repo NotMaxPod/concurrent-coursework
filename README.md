@@ -3,3 +3,6 @@ The server is capable of concurently sending messages across users as well trans
 
 The user login information is encrypted to a database. 
 The message and file history is stored in a separate database, with the sender's username and file type also being written to the database.
+
+The usrs.db file contains some sample users that can be used for testing such as admin (password the same) and tester 1-5, with passwords being their respective numbers (1,2...)
+The added files were used for testing the file transfering features.
