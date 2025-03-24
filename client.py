@@ -191,12 +191,12 @@ def loginDisplay():
         userData = tk.Toplevel(clientDisplay)
         userData.title("Your login credentials")
 
-        usernameLabel = Label(userData, text="Username:")
+        usernameLabel = Label(userData, text="Username:", fg="black")
         usernameLabel.pack()
         usernameEntry = Entry(userData)
         usernameEntry.pack()
 
-        passwordLabel = Label(userData, text="Password:")
+        passwordLabel = Label(userData, text="Password:", fg="black")
         passwordLabel.pack()
         passwordEntry = Entry(userData, show="*")
         passwordEntry.pack()
