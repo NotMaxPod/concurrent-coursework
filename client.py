@@ -7,6 +7,8 @@ from tkinter import *
 from threading import *
 import tkinter as tk
 import time
+import os.path
+
 
 
 # Definition of the client class
@@ -70,8 +72,8 @@ class Client:
             fileName = fileEntry.get()
             check = fileName.split(".")
             # Prepare the message for the server to switch to file processing mode on the server side.
-            serverMessage = username + "usersplit" + "/send"
-            if check[1] == "docx" or check[1] == "pdf" or check[1] == "jpeg":
+            serverMessage = username + "usersplit" + "/sendFileToServer"
+            if (check[1] == "docx" or check[1] == "pdf" or check[1] == "jpeg") and os.path.isfile(fileName):
                 client_socket.send(serverMessage.encode("utf-8"))
                 client_socket.send(fileName.encode())
                 with open(fileName, "rb") as file:
@@ -84,7 +86,7 @@ class Client:
             else:
                 # Bad file type error handling
                 client_socket.send(serverMessage.encode("utf-8"))
-                fileName = "File type not supported."
+                fileName = "File type not supported or file not found."
                 client_socket.send(fileName.encode("utf-8"))
 
         # File sending buttons and labels for the display
@@ -106,7 +108,7 @@ class Client:
         muteButton = tk.Button(messageWindow, text="Mute", command=toggleMute)
         muteButton.pack(pady=10)
 
-        # Exit button for the client, allowing them to disconnect from the server and advance the server que.
+        # Exit button for the client, allowing them to disconnect from the server and advance the server queue.
         def exitClient():
             self.mute = False
             client_socket.sendall((username + "usersplit" + "/exit").encode("utf-8"))

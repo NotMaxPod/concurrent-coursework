@@ -11,7 +11,7 @@ from tkinter import *
 from cryptography.fernet import Fernet
 import sys
 
-# Que and Connected, storing the connections of all user who log into the server. After connections >= 3, all further connections are added to que.
+# Que and Connected, storing the connections of all user who log into the server. After connections >= 3, all further connections are added to queue.
 que = {}
 connected = {}
 
@@ -35,11 +35,11 @@ class Server:
             username, message = message.split("usersplit")
 
             # If message sent by the server is of the /send type, intiate file transfering
-            if message == "/send":
+            if message == "/sendFileToServer":
                 # Flag for data reception and file name
                 doneSending = False
                 fileName = client_socket.recv(1024)
-                if fileName.decode("utf-8") == "File type not supported.":
+                if fileName.decode("utf-8") == "File type not supported or file not found.":
                     client_socket.sendall(fileName)
                     continue
                 # Create new unique file name with the user's name to clearly indicate who sent it
@@ -64,7 +64,7 @@ class Server:
                 client_socket.send("File sent to server.".encode("utf-8"))
                 continue
 
-            # Call user managing function to refresh que
+            # Call user managing function to refresh queue
             response = self.manageUsers(client_socket, username, message)
 
             # Client is not in queue, process message
@@ -118,25 +118,25 @@ class Server:
             connected[client_socket] = username
             # print("Added to connected")
 
-        # The server is too full, add current client to que and store their connection time. If already in que, return waiting time as server response
+        # The server is too full, add current client to queue and store their connection time. If already in queue, return waiting time as server response
         elif len(connected) > 2:
             if (client_socket not in que.keys()) and (
                 client_socket not in connected.keys()
             ):
                 que[client_socket] = time.time()
-                response = "The server is current at maximum capcity, you have been added to the que."
-                # print("Added to que.")
+                response = "The server is current at maximum capcity, you have been added to the queue."
+                # print("Added to queue.")
 
             elif client_socket in que.keys():
                 waitingTime = round((time.time() - que[client_socket]), 2)
                 response = f"Waiting in queue for {waitingTime} seconds."
-                # print("in que")
-        # Connection has decreased and the user is in que, move user to connected
+                # print("in queue")
+        # Connection has decreased and the user is in queue, move user to connected
         elif len(connected) < 3 and client_socket in que.keys():
             del que[client_socket]
             connected[client_socket] = username
             response = message
-            # print("removed from que")
+            # print("removed from queue")
 
         return response
 
